@@ -23,6 +23,10 @@ type EkskulTerdaftar = {
   nomor: number;
 };
 
+const MAKSIMAL_EKSKUL = 2;
+
+const normalisasi = (teks: string) => teks.trim().toLowerCase();
+
 // ==========================================
 // SERVER ACTION PENDAFTARAN EKSKUL
 // ==========================================
@@ -65,8 +69,6 @@ export async function daftarEkskul(
   if (galat.nama || galat.kelas) {
     return hasilGagal("", galat);
   }
-
-  const normalisasi = (teks: string) => teks.trim().toLowerCase();
 
   const namaSama = (p: (typeof pendaftar)[number]) =>
     normalisasi(p.nama) === normalisasi(nama) &&
@@ -116,7 +118,7 @@ export async function daftarEkskul(
     });
   };
 
-  // Memeriksa apakah sudah terdaftar
+  // Memeriksa apakah sudah terdaftar di ekskul yang sama
   const pendaftaranLama = pendaftar.find(
     (p) => p.ekskulId === ekskulId && namaSama(p),
   );
@@ -132,6 +134,20 @@ export async function daftarEkskul(
       galat: {},
       isian: { nama, kelas },
     };
+  }
+
+  // ==========================================
+  // BATAS MAKSIMAL 2 EKSKUL PER MURID
+  // ==========================================
+
+  const ekskulDiikuti = new Set(
+    pendaftar.filter(namaSama).map((p) => p.ekskulId),
+  );
+
+  if (ekskulDiikuti.size >= MAKSIMAL_EKSKUL) {
+    return hasilGagal(
+      `Kamu sudah mengikuti ${MAKSIMAL_EKSKUL} ekstrakurikuler. Maksimal pendaftaran hanya ${MAKSIMAL_EKSKUL} ekskul. Batalkan salah satu ekskul jika ingin mendaftar yang lain.`,
+    );
   }
 
   // Memeriksa kuota
@@ -238,9 +254,6 @@ export async function batalkanEkskul(formData: FormData) {
   if (!terdaftarDiCookie) {
     redirect("/saya?status=gagal");
   }
-
-  // Normalisasi nama dan kelas
-  const normalisasi = (teks: string) => teks.trim().toLowerCase();
 
   // Memeriksa ulang kepemilikan pendaftaran
   const indexPendaftar = pendaftar.findIndex(

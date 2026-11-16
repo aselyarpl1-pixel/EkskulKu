@@ -12,6 +12,7 @@ import KartuEkskul from "@/components/KartuEkskul";
 type SearchParams = {
   kategori?: string | string[];
   hari?: string | string[];
+  sisa?: string | string[];
 };
 
 type Props = {
@@ -27,6 +28,7 @@ export default async function DaftarEkskul({ searchParams }: Props) {
 
   const kategoriParam = ambilNilai(params.kategori);
   const hariParam = ambilNilai(params.hari);
+  const sisaParam = ambilNilai(params.sisa);
 
   const kategori: string = DAFTAR_KATEGORI.includes(kategoriParam as Kategori)
     ? kategoriParam!
@@ -34,13 +36,24 @@ export default async function DaftarEkskul({ searchParams }: Props) {
 
   const hari: string = DAFTAR_HARI.includes(hariParam ?? "") ? hariParam! : "";
 
+  const sisa = sisaParam === "1" ? "1" : "";
+
   const semuaEkskul = await ambilSemuaEkskul();
 
   const hasil = semuaEkskul.filter((item) => {
+    const jumlahPendaftar = pendaftar.filter(
+      (p) => p.ekskulId === item.id,
+    ).length;
+
+    const sisaTempat = Math.max(0, item.kuota - jumlahPendaftar);
+
     const cocokKategori = !kategori || item.kategori === kategori;
+
     const cocokHari = !hari || item.hari === hari;
 
-    return cocokKategori && cocokHari;
+    const cocokSisa = !sisa || sisaTempat > 0;
+
+    return cocokKategori && cocokHari && cocokSisa;
   });
 
   return (
@@ -60,11 +73,13 @@ export default async function DaftarEkskul({ searchParams }: Props) {
         </p>
       </section>
 
+      {/* FILTER EKSKUL */}
       <form
         action="/ekskul"
         method="GET"
-        className="mb-8 grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto_auto] lg:items-end"
+        className="mb-8 grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto_auto] lg:items-end"
       >
+        {/* Filter Kategori */}
         <div>
           <label
             htmlFor="kategori"
@@ -80,6 +95,7 @@ export default async function DaftarEkskul({ searchParams }: Props) {
             className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
           >
             <option value="">Semua kategori</option>
+
             {DAFTAR_KATEGORI.map((item) => (
               <option key={item} value={item}>
                 {item}
@@ -88,6 +104,7 @@ export default async function DaftarEkskul({ searchParams }: Props) {
           </select>
         </div>
 
+        {/* Filter Hari */}
         <div>
           <label
             htmlFor="hari"
@@ -103,6 +120,7 @@ export default async function DaftarEkskul({ searchParams }: Props) {
             className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
           >
             <option value="">Semua hari</option>
+
             {DAFTAR_HARI.map((item) => (
               <option key={item} value={item}>
                 {item}
@@ -111,6 +129,27 @@ export default async function DaftarEkskul({ searchParams }: Props) {
           </select>
         </div>
 
+        {/* Filter Ketersediaan */}
+        <div>
+          <label
+            htmlFor="sisa"
+            className="mb-2 block text-sm font-bold text-slate-700"
+          >
+            Ketersediaan
+          </label>
+
+          <select
+            id="sisa"
+            name="sisa"
+            defaultValue={sisa}
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+          >
+            <option value="">Semua ketersediaan</option>
+            <option value="1">Masih ada tempat</option>
+          </select>
+        </div>
+
+        {/* Tombol Filter */}
         <button
           type="submit"
           className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
@@ -118,6 +157,7 @@ export default async function DaftarEkskul({ searchParams }: Props) {
           Terapkan Filter
         </button>
 
+        {/* Tombol Reset */}
         <Link
           href="/ekskul"
           className="rounded-xl border border-slate-200 px-6 py-3 text-center text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
@@ -126,9 +166,11 @@ export default async function DaftarEkskul({ searchParams }: Props) {
         </Link>
       </form>
 
+      {/* HASIL FILTER */}
       <div className="mb-5 flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-slate-900">Pilihan Ekskul</h2>
+
           <p className="mt-1 text-sm text-slate-500">
             {hasil.length} ekstrakurikuler ditemukan
           </p>
@@ -153,12 +195,14 @@ export default async function DaftarEkskul({ searchParams }: Props) {
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
-          <h2 className="text-xl font-bold text-slate-800">
+          <div className="text-4xl">🔍</div>
+
+          <h2 className="mt-4 text-xl font-bold text-slate-800">
             Tidak ada ekskul yang cocok
           </h2>
 
           <p className="mt-2 text-sm text-slate-500">
-            Coba ubah kategori atau hari yang kamu pilih.
+            Coba ubah kategori, hari, atau ketersediaan yang kamu pilih.
           </p>
 
           <Link
